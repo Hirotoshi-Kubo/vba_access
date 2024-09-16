@@ -1,0 +1,77 @@
+    '当日のレコード表示(データ連結パターンなら可能)
+    DoCmd.RunCommand acCmdRecordsGoToLast
+    '当日のレコードがない場合は新しいレコードを表示
+    If Me.年月日 < Date Then DoCmd.RunCommand acCmdRecordsGoToNew
+    'レコード保存時
+    DoCmd.RunCommand acCmdSaveRecord
+
+    'テキストボックス・コンボボックス背景色設定
+    Dim ctl As Control
+    For Each ctl In Me.Controls
+    
+        'テキストボックス・コンボボックスのみ確認
+        If ctl.ControlType <> acTextBox And ctl.ControlType <> acComboBox Then GoTo n
+        
+        '備考は無視
+        If ctl.Name Like "*NOTES*" Then GoTo n
+        
+        '使用不可のコントロールは無視
+        If Not ctl.Enabled Then GoTo n
+        
+'        Dim rs As DAO.Recordset
+'        Set rs = CurrentDb.OpenRecordset("設定テーブルからctl.nameのレコード抽出SQL", dbOpenDynaset)
+        '※クエリ化して、パラメータで値をわたすのもよいかも。
+    
+        '更新前処理設定(最大値・最小値の入力有無、代理判定設定有無で設定)
+        
+        '値の範囲内判定取得
+        Dim isValueInRange As Boolean
+        Select Case True
+        '代理判定あり
+        '最大値・最小値入力あり
+        '最大値のみあり
+        '最小値のみあり
+        'どちらもなし
+        
+        End Select
+        
+        ctl.BeforeUpdate = "=SetTbBackColor([" & ctl.Name & "], " & isValueInRange & ")"
+    
+        '当日レコードアリの場合は、入力値確認も行う
+'        If Me.年月日 = Date Then
+'            Call SetTbBackColor([" & ctl.Name & "], " & isValueInRange & ")
+'        End If
+        
+'        rs.Close: Set rs = Nothing
+    
+n:
+    Next
+
+    'フォームの日付を取得>クエリパラメータに設定し検索
+    Dim searchStartDate As Date
+    searchStartDate = Me.t9.Value
+    
+    '入力年月の末日取得
+    Dim searchLastDate As Date
+    searchLastDate = DateSerial(Year(searchStartDate), Month(searchStartDate) + 1, 0)
+    
+    'レポートクエリ実行＞レポート開く(引数：入力年月日)
+    DoCmd.SetParameter "開始日", "#" & searchStartDate & "#"
+    DoCmd.SetParameter "終了日", "#" & searchLastDate & "#"
+    DoCmd.OpenReport Me.t0.Value, acViewReport, OpenArgs:=searchStartDate
+    '↓レポートに引数渡し
+    'ラベルの表題を更新
+    Me.l_y.Caption = Format(Me.OpenArgs, "yyyy")
+    Me.l_month.Caption = Format(Me.OpenArgs, "m")
+
+    'レポート一覧取得(あらかじめコンボボックスと値集合タイプ：値リストにしておくこと)
+    Dim repos As AllReports
+    Set repos = CurrentProject.AllReports
+    Dim repo As AccessObject
+    Dim reportNames As String
+    For Each repo In repos
+        Me.t0.AddItem repo.Name
+    Next
+
+
+
